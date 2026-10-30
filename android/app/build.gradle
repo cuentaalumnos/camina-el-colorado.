@@ -1,0 +1,49 @@
+plugins {
+    id 'com.android.application'
+}
+
+def numero = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()
+
+android {
+    namespace 'ar.edu.dia.correelcolorado'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'ar.edu.dia.correelcolorado'
+        minSdk 24
+        targetSdk 34
+        versionCode numero
+        versionName "1.0." + numero
+    }
+
+    signingConfigs {
+        // Firma fija para que las versiones nuevas se instalen encima de las viejas.
+        dia {
+            storeFile file('../firma-dia.jks')
+            storePassword 'corre-dia-2026'
+            keyAlias 'dia'
+            keyPassword 'corre-dia-2026'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.dia
+        }
+    }
+
+    // El juego (index.html) ya viene comprimido por dentro; no hace falta volver a comprimirlo.
+    androidResources {
+        noCompress 'html'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.11.0'
+}

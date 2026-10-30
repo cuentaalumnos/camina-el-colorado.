@@ -43,6 +43,17 @@ details summary{cursor:pointer;color:var(--azul);font-weight:700}
 
 /* HUD */
 #hud{position:fixed;inset:0;pointer-events:none;z-index:10;display:none}
+#tactil{position:fixed;inset:0;pointer-events:none;z-index:60;display:none;user-select:none;-webkit-user-select:none;touch-action:none}
+#tactil .tb{pointer-events:auto;position:absolute;padding:0;margin:0;cursor:pointer;border:3px solid #fff;border-radius:50%;background:rgba(31,78,121,.82);color:#fff;font:800 15px/1.1 system-ui,sans-serif;display:grid;place-items:center;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,.35);touch-action:none;-webkit-tap-highlight-color:transparent}
+#tactil .tb.on{background:var(--dorado);color:var(--azul-osc)}
+#tactil .flecha{width:62px;height:62px;font-size:26px}
+#t-arriba{right:80px;bottom:292px}#t-abajo{right:80px;bottom:160px}#t-izq{right:146px;bottom:226px}#t-der{right:14px;bottom:226px}
+#tactil #t-saltar{left:14px;bottom:262px;width:100px;height:100px;font-size:17px;background:rgba(200,150,30,.92);color:var(--azul-osc)}
+#tactil #t-agacha{left:120px;bottom:262px;width:84px;height:84px;font-size:12px}
+#t-figuras{pointer-events:none;position:absolute;left:0;right:0;bottom:380px;display:none;justify-content:center;gap:10px}
+#tactil #t-figuras .tb{position:static;width:64px;height:64px;font-size:13px}
+#tactil #t-salir{right:12px;top:110px;width:44px;height:44px;font-size:18px;background:rgba(18,49,80,.7)}
+
 #hud.ver{display:block}
 .caja{position:absolute;background:rgba(18,49,80,.86);color:#fff;border-radius:16px;padding:10px 18px}
 #marcador{top:16px;left:16px;display:flex;gap:24px}
@@ -226,12 +237,12 @@ details summary{cursor:pointer;color:var(--azul);font-weight:700}
     </div>
     <div class="fila">
       <button class="b1" id="btn-camara">🎥 Jugar con la cámara</button>
-      <button class="b2" id="btn-teclado">⌨️ Probar con teclado y mouse</button>
+      <button class="b2" id="btn-teclado">⌨️📱 Jugar sin cámara (teclado o pantalla táctil)</button>
       <span id="estado-carga" class="nota"></span>
     </div>
     <details>
-      <summary>Teclado y mouse (para probar o como alternativa)</summary>
-      <p class="nota">Flechas o W A S D: moverte (adelante, izquierda, atrás, derecha) · Espacio: saltar · Mouse: es tu mano (apuntá y hacé clic) · Rayuela: Espacio · Baile: teclas 1 a 4 · Esc: terminar</p>
+      <summary>Sin cámara: teclado, mouse o pantalla táctil</summary>
+      <p class="nota">Flechas o W A S D: moverte (adelante, izquierda, atrás, derecha) · Espacio: saltar · Mouse: es tu mano (apuntá y hacé clic) · Rayuela: Espacio · Baile: teclas 1 a 4 · Esc: terminar<br>En el celular aparecen botones en pantalla: flechas para moverte, 🦘 Saltar, 🙇 Agacharse y, en el baile, una tecla por figura. Las respuestas y los blancos se tocan con el dedo.</p>
     </details>
     <details>
       <summary>Poner fotos propias de los lugares (opcional)</summary>
@@ -1042,12 +1053,19 @@ function hud(){
 }
 function sumar(p,txt){ const v=p>0?p*J.racha:p; J.puntos=Math.max(0,J.puntos+v); if(txt) mensaje(txt.replace("#",(v>0?"+":"")+v),900); hud(); }
 
+const TACTIL=matchMedia("(pointer:coarse)").matches||("ontouchstart" in window);
+function errorCamara(e){
+  if(!window.isSecureContext||!navigator.mediaDevices) return "En este archivo el navegador no permite usar la cámara (pasa al abrirlo desde Descargas en el celular). Para jugar con la cámara instalá la app de Android o abrí corre-el-colorado.floot.app y tocá «Abrir acá». Mientras, podés jugar sin cámara.";
+  if(e&&e.name==="NotAllowedError") return "No me diste permiso para la cámara. Tocá el candado o los ajustes del navegador (o de la app), permití la cámara y volvé a intentar. También podés jugar sin cámara.";
+  if(e&&e.name==="NotFoundError") return "No encontré ninguna cámara en este equipo. Podés jugar sin cámara.";
+  return "No pude abrir la cámara ("+((e&&(e.name||e.message))||"error")+"). Revisá el permiso o jugá sin cámara.";
+}
 async function empezar(conCamara){
   J.conCamara=conCamara; J.modo=$("#modo").value; audio(); orientar();
   if(conCamara&&!vision.activo){
     const est=$("#estado-carga");
     try{ await vision.iniciar(t=>est.textContent=t); }
-    catch(e){ console.error(e); est.textContent="No pude abrir la cámara ("+(e.name||e.message)+"). Revisá el permiso del navegador o probá con teclado."; return; }
+    catch(e){ console.error(e); est.textContent=errorCamara(e); return; }
   }
   ver($("#inicio"),false); ver($("#final"),false); ver($("#hud"),true);
   $("#minicam").style.display=conCamara?"block":"none";
@@ -1070,7 +1088,7 @@ function calibracion(){
 function practica(){
   J.fase="practica"; ver($("#calibra"),true);
   $("#calibra-titulo").textContent="¡Probá saltar!";
-  $("#calibra-texto").innerHTML=J.conCamara?(J.modo==="sentado"?"Levantá <b>las dos manos</b> rápido para arrancar.":"Saltá con los dos pies (o levantá las dos manos) para arrancar."):"Apretá la barra <b>Espacio</b> para saltar y arrancar.";
+  $("#calibra-texto").innerHTML=J.conCamara?(J.modo==="sentado"?"Levantá <b>las dos manos</b> rápido para arrancar.":"Saltá con los dos pies (o levantá las dos manos) para arrancar."):(TACTIL?"Tocá el botón <b>🦘 Saltar</b> para saltar y arrancar.":"Apretá la barra <b>Espacio</b> para saltar y arrancar.");
   $("#cuenta").textContent="🦘";
 }
 function arrancarCarrera(){ ver($("#calibra"),false); J.fase="carrera"; sonido("llegada"); mensaje(J.conCamara?"¡Caminá hacia la pantalla!":"¡Usá las flechas!",1800); musica.poner(true,{bpm:100,vol:0.05}); }
@@ -1079,9 +1097,9 @@ function arrancarCarrera(){ ver($("#calibra"),false); J.fase="carrera"; sonido("
 const INTROS={
   pregunta:{ico:"❓",tit:m=>"Pregunta de "+m,pasos:()=>J.conCamara?["🖐️ Levantá una mano: aparece un círculo, es tu cursor.","👉 Llevalo sobre la respuesta correcta.","⏳ Quedate quieto hasta que se llene el círculo."]:["🖱️ Hacé clic en la respuesta (o teclas 1, 2, 3)."]},
   tiro:{ico:"🎯",tit:()=>"Tiro al blanco matemático",pasos:()=>J.conCamara?["🔢 Arriba aparece un problema.","🖐️ Apuntá con la mano al blanco que tiene el resultado.","⏳ Sostené la mano sobre el blanco y ¡pum!"]:["🔢 Resolvé el problema de arriba.","🖱️ Hacé clic en el blanco con el resultado."]},
-  rayuela:{ico:"🔢",tit:()=>"Rayuela en el patio de «La Normal»",pasos:()=>J.conCamara?["🦘 Cada saltito te lleva a la casilla siguiente.","🙌 Si te cuesta saltar, levantá las dos manos.","🏁 Saltá del 1 hasta el CIELO."]:["⌨️ Cada vez que apretás Espacio, saltás a la casilla siguiente.","🏁 Saltá del 1 hasta el CIELO."]},
-  brujula:{ico:"🧭",tit:()=>"La brújula: muros cardinales",pasos:()=>J.conCamara?["🧱 Cada pared del aula tiene su punto cardinal: N, S, E, O.","🗣️ El juego te dice: «¡Caminá hacia el ESTE!».","👣 Dá un paso hacia ese muro y quedate ahí 1 segundo.","↩️ Después volvé al centro."]:["🗣️ El juego te dice un punto cardinal.","⌨️ Mantené apretada la flecha que va hacia ese lado."]},
-  baile:{ico:"💃",tit:()=>"¡Baile en FERIARTE!",pasos:()=>J.conCamara?["🎵 Suena la música.","🧍 Aparece una figura: copiala con tu cuerpo.","⭐ Cuanto más rápido la hacés, más puntos."]:["🎵 Aparece una figura con su tecla.","⌨️ 1 = brazos arriba · 2 = avión · 3 = mano izquierda · 4 = mano derecha."]}
+  rayuela:{ico:"🔢",tit:()=>"Rayuela en el patio de «La Normal»",pasos:()=>J.conCamara?["🦘 Cada saltito te lleva a la casilla siguiente.","🙌 Si te cuesta saltar, levantá las dos manos.","🏁 Saltá del 1 hasta el CIELO."]:[TACTIL?"👆 Cada vez que tocás 🦘 Saltar, pasás a la casilla siguiente.":"⌨️ Cada vez que apretás Espacio, saltás a la casilla siguiente.","🏁 Saltá del 1 hasta el CIELO."]},
+  brujula:{ico:"🧭",tit:()=>"La brújula: muros cardinales",pasos:()=>J.conCamara?["🧱 Cada pared del aula tiene su punto cardinal: N, S, E, O.","🗣️ El juego te dice: «¡Caminá hacia el ESTE!».","👣 Dá un paso hacia ese muro y quedate ahí 1 segundo.","↩️ Después volvé al centro."]:["🗣️ El juego te dice un punto cardinal.",TACTIL?"👆 Mantené apretada la flecha de la pantalla que va hacia ese lado.":"⌨️ Mantené apretada la flecha que va hacia ese lado."]},
+  baile:{ico:"💃",tit:()=>"¡Baile en FERIARTE!",pasos:()=>J.conCamara?["🎵 Suena la música.","🧍 Aparece una figura: copiala con tu cuerpo.","⭐ Cuanto más rápido la hacés, más puntos."]:["🎵 Aparece una figura con su tecla.",TACTIL?"👆 Tocá el botón de la figura: 1 = brazos arriba · 2 = avión · 3 = mano izquierda · 4 = mano derecha.":"⌨️ 1 = brazos arriba · 2 = avión · 3 = mano izquierda · 4 = mano derecha."]}
 };
 function abrirEstacion(){
   const E=ESTACIONES[J.est], L=lugarDe(E.lugar);
@@ -1255,7 +1273,7 @@ function ordenRayuela(){
   const fila=CASILLAS[RA.i], dos=fila.length>1||fila[0]==="CIELO";
   RA.dos=dos; RA.sost=0;
   $("#r-orden").textContent=fila[0]==="CIELO"?"¡SALTÁ AL CIELO! ☁️":"¡Saltá al "+fila.join(" y ")+"!";
-  $("#r-ayuda").textContent=(fila[0]==="CIELO"?"¡Último salto!":dos?"🦶🦶 Acá van los dos pies.":"🦶 Acá va un pie.")+(J.conCamara?" Saltá (o levantá las dos manos).":" Apretá Espacio.");
+  $("#r-ayuda").textContent=(fila[0]==="CIELO"?"¡Último salto!":dos?"🦶🦶 Acá van los dos pies.":"🦶 Acá va un pie.")+(J.conCamara?" Saltá (o levantá las dos manos).":TACTIL?" Tocá 🦘 Saltar.":" Apretá Espacio.");
   $$("#r-tablero .cas").forEach(c=>{ const f=+c.dataset.f; c.classList.toggle("act",f===RA.i); c.classList.toggle("hecha",f<RA.i); });
 }
 function tickRayuela(dt,lec){
@@ -1415,6 +1433,29 @@ $("#btn-inicio").onclick=()=>{ ver($("#final"),false); ver($("#hud"),false); ver
 Object.entries(FOTOS_LUGARES).forEach(([id,src])=>{ const img=new Image(); img.onload=()=>{ fotos[id]=img; mundo.ponerFoto(id,img); }; img.src=src; });
 mundo.sembrar(); armarBarra(); orientar();
 $("#frente").addEventListener("change",orientar);
+/* ---------- controles táctiles (celular sin cámara) ---------- */
+(function(){
+  const pad=document.createElement("div"); pad.id="tactil";
+  pad.innerHTML='<button class="tb flecha" id="t-arriba" data-k="ArrowUp">▲</button><button class="tb flecha" id="t-izq" data-k="ArrowLeft">◀</button><button class="tb flecha" id="t-der" data-k="ArrowRight">▶</button><button class="tb flecha" id="t-abajo" data-k="ArrowDown">▼</button>'+
+    '<button class="tb" id="t-saltar" data-k=" ">🦘<br>Saltar</button><button class="tb" id="t-agacha" data-k="c">🙇<br>Agachar</button><button class="tb" id="t-salir" data-k="Escape" aria-label="Terminar">✕</button>'+
+    '<div id="t-figuras"><button class="tb" data-k="1">1<br>🙌</button><button class="tb" data-k="2">2<br>✈️</button><button class="tb" data-k="3">3<br>✋I</button><button class="tb" data-k="4">4<br>D✋</button></div>';
+  document.body.appendChild(pad);
+  const tecla=(tipo,k)=>dispatchEvent(new KeyboardEvent(tipo,{key:k,bubbles:true}));
+  pad.querySelectorAll(".tb").forEach(b=>{
+    const k=b.dataset.k; let abajo=false;
+    const soltar=()=>{ if(!abajo) return; abajo=false; b.classList.remove("on"); tecla("keyup",k); };
+    b.addEventListener("pointerdown",e=>{ e.preventDefault(); try{ b.setPointerCapture(e.pointerId); }catch(_){} abajo=true; b.classList.add("on"); tecla("keydown",k); });
+    ["pointerup","pointercancel","lostpointercapture"].forEach(ev=>b.addEventListener(ev,soltar));
+    b.addEventListener("contextmenu",e=>e.preventDefault());
+  });
+  const fig=pad.querySelector("#t-figuras");
+  (function mirar(){
+    const jugando=!["inicio","final"].includes(J.fase);
+    pad.style.display=(TACTIL&&!J.conCamara&&jugando)?"block":"none";
+    fig.style.display=J.fase==="baile"?"flex":"none";
+    requestAnimationFrame(mirar);
+  })();
+})();
 </script>
 </body>
 </html>
